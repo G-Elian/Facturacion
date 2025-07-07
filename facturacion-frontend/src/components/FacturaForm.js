@@ -1,5 +1,3 @@
-Prueba
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Alert, Card, Button, Form, Row, Col, Table, Badge } from 'react-bootstrap';

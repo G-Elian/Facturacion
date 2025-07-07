@@ -1,14 +1,4 @@
-<<<<<<< HEAD
-import React from 'react';
-import UserConsulta from '../components/UserConsulta';
 
-function UserPortal() {
-  return (
-    <div className="container mt-4">
-      <h2>Consulta de Usuario</h2>
-      <UserConsulta />
-=======
-// src/pages/UserPortal.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -225,7 +215,6 @@ function UserPortal() {
           {activeTab === 'facturas' && renderFacturas()}
         </div>
       </div>
->>>>>>> Prueba
     </div>
   );
 }
