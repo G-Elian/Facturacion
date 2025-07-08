@@ -126,13 +126,24 @@ const FacturaForm = () => {
 
     setLoading(true);
     try {
-      const facturaData = {
-        ...formData,
-        conceptos,
-        total_amount: parseFloat(calcularTotal())
-      };
+      const usuario = usuarios.find(u => u.id === parseInt(formData.user_id));
+    if (!usuario) {
+    mostrarAlert('danger', 'Usuario no encontrado');
+    setLoading(false);
+    return;
+    }
 
-      await axios.post('http://localhost:3001/api/facturas', facturaData);
+    const descripcion = conceptos.map(c => `${c.descripcion} ($${c.precio_unitario})`).join(', ');
+    const monto = parseFloat(calcularTotal());
+
+    const facturaData = {
+    cedula: usuario.cedula,
+    descripcion,
+    monto
+    };
+
+    await axios.post('http://localhost:3001/api/facturas', facturaData);
+
       
       mostrarAlert('success', 'Factura creada exitosamente');
       

@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 // Importar todas las rutas
-const usuariosRoutes = require('./routes/usuarios');
+const usuariosRoutes = require('./routes/users');
 const facturasRoutes = require('./routes/facturas');
 const pagosRoutes = require('./routes/payments');
 const notificacionesRoutes = require('./routes/notifications');
