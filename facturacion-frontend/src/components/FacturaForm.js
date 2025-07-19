@@ -119,34 +119,47 @@ const FacturaForm = () => {
     return true;
   };
 
-  const handleSubmit = async (e) => {
+   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validarFormulario()) return;
 
     setLoading(true);
     try {
       const usuario = usuarios.find(u => u.id === parseInt(formData.user_id));
-    if (!usuario) {
-    mostrarAlert('danger', 'Usuario no encontrado');
-    setLoading(false);
-    return;
-    }
+      if (!usuario) {
+        mostrarAlert('danger', 'Usuario no encontrado');
+        setLoading(false);
+        return;
+      }
 
-    const descripcion = conceptos.map(c => `${c.descripcion} ($${c.precio_unitario})`).join(', ');
-    const monto = parseFloat(calcularTotal());
+      const descripcion = conceptos.map(c => `${c.descripcion} ($${c.precio_unitario})`).join(', ');
+      const monto = parseFloat(calcularTotal());
 
-    const facturaData = {
-    cedula: usuario.cedula,
-    descripcion,
-    monto
-    };
+      // Convertir mes seleccionado a número (ej: "Enero" => "01")
+      const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      const mesIndex = meses.indexOf(formData.month);
+      if (mesIndex === -1) {
+        mostrarAlert('danger', 'Mes inválido');
+        setLoading(false);
+        return;
+      }
+      const mesNumero = (mesIndex + 1).toString().padStart(2, '0');
 
-    await axios.post('http://localhost:3001/api/facturas', facturaData);
+      const facturaData = {
+        cedula: usuario.cedula,
+        descripcion,
+        monto,
+        mes_pago: mesNumero,
+        anio_pago: formData.year,
+        estado: formData.status // Debe ser 'pendiente' o 'pagado'
+      };
 
-      
+      await axios.post('http://localhost:3001/api/facturas', facturaData);
+
       mostrarAlert('success', 'Factura creada exitosamente');
-      
+
       // Limpiar formulario
       setFormData({
         user_id: '',
@@ -165,6 +178,7 @@ const FacturaForm = () => {
       setLoading(false);
     }
   };
+
 
   const generarFechaVencimiento = () => {
     const hoy = new Date();

@@ -13,6 +13,7 @@ const pagosRoutes = require('./routes/payments');
 const notificacionesRoutes = require('./routes/notifications');
 const adminsRoutes = require('./routes/admins');
 const perfilRoutes = require('./routes/perfil');
+const loginRoutes = require('./routes/login');
 
 // Configurar rutas
 app.use('/api/usuarios', usuariosRoutes);
@@ -21,6 +22,7 @@ app.use('/api/pagos', pagosRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
 app.use('/api/admins', adminsRoutes);
 app.use('/api/perfil', perfilRoutes);
+app.use('/api/login', loginRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
@@ -33,7 +35,8 @@ app.get('/', (req, res) => {
       pagos: '/api/pagos',
       notificaciones: '/api/notificaciones',
       admins: '/api/admins',
-      perfil: '/api/perfil'
+      perfil: '/api/perfil',
+      login: '/api/login'
     }
   });
 });

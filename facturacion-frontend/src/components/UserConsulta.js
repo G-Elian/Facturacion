@@ -6,14 +6,18 @@ function UserConsulta() {
   const [facturas, setFacturas] = useState([]);
 
   const buscarFacturas = async () => {
-    try {
-      const response = await axios.get(`http://localhost:3001/api/facturas/${cedula}`);
-      setFacturas(response.data);
-    } catch (error) {
-      alert('Error al obtener facturas');
-      console.error(error);
-    }
-  };
+  if (!cedula.trim()) return;
+
+  try {
+    const response = await axios.get(`http://localhost:3001/api/usuarios/${cedula}/facturas`);
+    setFacturas(response.data);
+  } catch (error) {
+    console.error(error);
+    setFacturas([]); // <- Esto limpia resultados anteriores
+    alert('No se encontraron facturas para esta cédula.');
+  }
+};
+
 
   return (
     <div>

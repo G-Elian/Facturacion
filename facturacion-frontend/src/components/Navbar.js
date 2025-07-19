@@ -1,33 +1,42 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
-const Navbar = ({ user, onLogout }) => {
-  const location = useLocation();
-
+function Navbar({ user, onLogout }) {
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <nav className="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
       <div className="container">
-        <Link className="navbar-brand fw-bold" to="/">
-          💧 AquaBilling
+        <Link className="navbar-brand" to="/admin">
+          💧 Sistema de Facturación
         </Link>
-        
-        <div className="navbar-nav ms-auto d-flex flex-row align-items-center">
+
+        <div className="collapse navbar-collapse">
+          <ul className="navbar-nav me-auto">
+            <li className="nav-item">
+              <Link className="nav-link" to="/admin">Dashboard</Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/admin/usuarios">Usuarios</Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/admin/facturas">Facturas</Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/admin/crear-usuario">Crear Usuario</Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/admin/crear-factura">Crear Factura</Link>
+            </li>
+          </ul>
           <span className="navbar-text me-3">
-            Bienvenido, {user.name || user.email}
+            Bienvenido, {user?.nombre || 'Admin'}
           </span>
-          <span className="badge bg-light text-primary me-3">
-            {user.role === 'admin' ? 'Administrador' : 'Cliente'}
-          </span>
-          <button 
-            className="btn btn-outline-light btn-sm" 
-            onClick={onLogout}
-          >
+          <button className="btn btn-outline-light" onClick={onLogout}>
             Cerrar Sesión
           </button>
         </div>
       </div>
     </nav>
   );
-};
+}
 
 export default Navbar;

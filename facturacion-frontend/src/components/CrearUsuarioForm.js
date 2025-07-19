@@ -21,7 +21,7 @@ function CrearUsuarioForm() {
       const res = await axios.post('http://localhost:3001/api/usuarios', formData);
       alert('Usuario registrado correctamente');
     } catch (err) {
-      alert('Error al registrar usuario');
+      alert('Error, Usuario ya existe');
     }
   };
 
