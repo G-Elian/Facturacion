@@ -14,8 +14,12 @@ const notificacionesRoutes = require('./routes/notifications');
 const adminsRoutes = require('./routes/admins');
 const perfilRoutes = require('./routes/perfil');
 const loginRoutes = require('./routes/login');
+const chatbotRoutes = require('./routes/Chatbot');
+const asistenteRoutes = require('./routes/asistente');
 
 // Configurar rutas
+app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/asistente', asistenteRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/facturas', facturasRoutes);
 app.use('/api/pagos', pagosRoutes);

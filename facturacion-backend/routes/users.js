@@ -70,22 +70,27 @@ router.post('/', (req, res) => {
   });
 });
 
-// Actualizar información de usuario
+// Actualizar usuario
 router.put('/:cedula', (req, res) => {
   const { cedula } = req.params;
-  const { nombre, correo, telefono, direccion } = req.body;
+  const { nombre, correo, telefono, direccion, saldo, estado } = req.body;
 
-  if (!nombre) {
-    return res.status(400).json({ error: 'El nombre es obligatorio' });
+  if (!nombre || !correo || !telefono || !direccion || saldo === undefined || !estado) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios' });
   }
 
-  const sql = 'UPDATE users SET nombre = ?, correo = ?, telefono = ?, direccion = ? WHERE cedula = ?';
-  const valores = [nombre, correo, telefono, direccion, cedula];
+  const sql = `
+    UPDATE users 
+    SET nombre = ?, correo = ?, telefono = ?, direccion = ?, saldo = ?, estado = ? 
+    WHERE cedula = ?
+  `;
+
+  const valores = [nombre, correo, telefono, direccion, saldo, estado, cedula];
 
   db.query(sql, valores, (err, result) => {
     if (err) {
       console.error('Error al actualizar usuario:', err);
-      return res.status(500).json({ error: 'Error en la base de datos' });
+      return res.status(500).json({ error: 'Error al actualizar usuario' });
     }
 
     if (result.affectedRows === 0) {
@@ -96,39 +101,26 @@ router.put('/:cedula', (req, res) => {
   });
 });
 
-// Eliminar usuario
+
+// Eliminar usuario sin validar facturas pendientes (solo si lo deseas)
 router.delete('/:cedula', (req, res) => {
   const { cedula } = req.params;
 
-  // Verificar si el usuario tiene facturas pendientes
-  const sqlCheck = 'SELECT COUNT(*) as count FROM invoices WHERE cedula = ? AND estado = "pendiente"';
-  db.query(sqlCheck, [cedula], (err, result) => {
+  const sql = 'DELETE FROM users WHERE cedula = ?';
+  db.query(sql, [cedula], (err, result) => {
     if (err) {
-      console.error('Error al verificar facturas:', err);
+      console.error('Error al eliminar usuario:', err);
       return res.status(500).json({ error: 'Error en la base de datos' });
     }
 
-    if (result[0].count > 0) {
-      return res.status(400).json({ 
-        error: 'No se puede eliminar el usuario porque tiene facturas pendientes' 
-      });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    const sql = 'DELETE FROM users WHERE cedula = ?';
-    db.query(sql, [cedula], (err, result) => {
-      if (err) {
-        console.error('Error al eliminar usuario:', err);
-        return res.status(500).json({ error: 'Error en la base de datos' });
-      }
-
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: 'Usuario no encontrado' });
-      }
-
-      res.json({ message: 'Usuario eliminado correctamente' });
-    });
+    res.json({ message: 'Usuario eliminado correctamente' });
   });
 });
+
 
 // Obtener facturas de un usuario específico
 router.get('/:cedula/facturas', (req, res) => {

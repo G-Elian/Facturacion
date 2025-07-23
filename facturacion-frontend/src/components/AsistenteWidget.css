@@ -1,0 +1,65 @@
+.asistente-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 999;
+  font-family: Arial, sans-serif;
+}
+
+.abrir-asistente {
+  padding: 12px 18px;
+  background-color: #0d6efd;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+}
+
+.asistente-box {
+  width: 300px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.asistente-header {
+  background-color: #0d6efd;
+  color: white;
+  padding: 10px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.asistente-body {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.asistente-body input {
+  padding: 8px;
+  font-size: 14px;
+  width: 100%;
+}
+
+.asistente-body button {
+  padding: 8px;
+  background-color: #0d6efd;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.chat p {
+  margin: 0;
+}
+
+.btn-volver {
+  background-color: #6c757d;
+}

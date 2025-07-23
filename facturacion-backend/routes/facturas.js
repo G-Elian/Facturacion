@@ -4,129 +4,111 @@ const db = require('../db');
 const generarFacturaPDF = require('../Utils/generarFacturaPDF');
 const sendInvoiceEmail = require('../Utils/sendEmail');
 
+// ✅ Ruta para obtener TODAS las facturas
+router.get('/', (req, res) => {
+  db.query('SELECT * FROM invoices ORDER BY fecha_emision DESC', (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Error al obtener facturas' });
+    res.json(rows);
+  });
+});
+
+// ✅ Ruta para CREAR factura con validación
 router.post('/', (req, res) => {
   const { cedula, descripcion, monto, mes_pago, anio_pago, estado } = req.body;
 
-  if (!cedula || !descripcion || !monto || !mes_pago || !anio_pago || !estado) {
+  if (!cedula || !descripcion || !monto || !mes_pago || !anio_pago) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' });
   }
 
-  const estadoFactura = ['pendiente', 'pagado'].includes(estado) ? estado : 'pendiente';
-
-  // Paso 1: Verificar si ya existe una factura del mismo mes y año para este cliente
   db.query(
-    `SELECT * FROM invoices 
-     WHERE cedula = ? 
-       AND MONTH(fecha_emision) = ? 
-       AND YEAR(fecha_emision) = ?`,
+    `SELECT * FROM invoices WHERE cedula = ? AND mes_pago = ? AND anio_pago = ?`,
     [cedula, mes_pago, anio_pago],
-    (err, rows) => {
-      if (err) {
-        console.error('❌ Error al verificar factura existente:', err);
-        return res.status(500).json({ error: 'Error al verificar factura existente' });
+    (err, existing) => {
+      if (err) return res.status(500).json({ error: 'Error al verificar factura existente' });
+
+      if (existing.length > 0) {
+        return res.status(400).json({ error: `Ya existe una factura para ${mes_pago}/${anio_pago}` });
       }
 
-      if (rows.length > 0) {
-        return res.status(400).json({ error: `Ya existe un pago registrado para ${mes_pago}/${anio_pago}` });
-      }
+      db.query(
+        `SELECT * FROM invoices WHERE cedula = ? ORDER BY anio_pago DESC, mes_pago DESC LIMIT 1`,
+        [cedula],
+        (err2, lastInvoice) => {
+          if (err2) return res.status(500).json({ error: 'Error al verificar facturas anteriores' });
 
-      // Paso 2: Generar número de factura
-      db.query('SELECT numero_factura FROM invoices ORDER BY id DESC LIMIT 1', (err, lastRows) => {
-        if (err) {
-          console.error('❌ Error al obtener última factura:', err);
-          return res.status(500).json({ error: 'Error al generar número de factura' });
-        }
-
-        let numeroFactura;
-        if (lastRows.length > 0) {
-          const ultimo = lastRows[0].numero_factura;
-          const num = parseInt(ultimo.split('-')[2]) + 1;
-          numeroFactura = `FAC-${new Date().getFullYear()}-${num.toString().padStart(6, '0')}`;
-        } else {
-          numeroFactura = `FAC-${new Date().getFullYear()}-000001`;
-        }
-
-        // Paso 3: Insertar factura en BD
-        const sql = `
-          INSERT INTO invoices (numero_factura, cedula, descripcion, monto, estado, fecha_emision, fecha_vencimiento)
-          VALUES (?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY))
-        `;
-        const valores = [numeroFactura, cedula, descripcion, monto, estadoFactura];
-
-        db.query(sql, valores, (err, result) => {
-          if (err) {
-            console.error('❌ Error al guardar factura:', err);
-            return res.status(500).json({ error: 'Error al guardar la factura' });
+          if (lastInvoice.length === 0) {
+            return crearFactura(cedula, descripcion, monto, mes_pago, anio_pago, estado, res);
           }
 
-          // Paso 4: Buscar datos del cliente
-          db.query('SELECT nombre, correo, direccion FROM users WHERE cedula = ?', [cedula], (err2, userRows) => {
-            if (err2 || userRows.length === 0) {
-              console.warn('⚠️ Cliente no encontrado o error:', err2);
-            }
+          const ultima = lastInvoice[0];
 
-            const cliente = userRows[0] || {};
-
-            const datosFactura = {
-              numero_factura: numeroFactura,
-              cedula,
-              descripcion,
-              monto: parseFloat(monto),
-              nombre: cliente.nombre || '---',
-              correo: cliente.correo || 'aguafacturacion23@gmail.com',
-              direccion: cliente.direccion || '---',
-              fecha_emision: new Date().toISOString().split('T')[0],
-              estado: estadoFactura
-            };
-
-            // Paso 5: Generar PDF
-            generarFacturaPDF(datosFactura, async (err, rutaPDF) => {
-              if (err) {
-                console.error('❌ Error al generar PDF:', err);
-                return res.status(500).json({ error: 'Error al generar PDF' });
-              }
-
-              // Paso 6: Enviar correo
-              try {
-                await sendInvoiceEmail(datosFactura);
-                console.log('📨 Correo enviado correctamente');
-              } catch (error) {
-                console.error('❌ Error al enviar correo:', error);
-              }
-
-              console.log(`✅ Factura registrada y PDF generado: ${rutaPDF}`);
-              res.status(201).json({
-                message: 'Factura creada y enviada correctamente',
-                numero_factura: numeroFactura,
-                pdf: rutaPDF
-              });
+          if (ultima.estado === 'pendiente') {
+            return res.status(400).json({
+              error: `Debe pagar primero la factura pendiente del mes ${ultima.mes_pago}/${ultima.anio_pago}`
             });
-          });
-        });
-      });
+          }
+
+          return crearFactura(cedula, descripcion, monto, mes_pago, anio_pago, estado, res);
+        }
+      );
     }
   );
 });
-// Obtener todas las facturas o facturas de un cliente
-router.get('/', (req, res) => {
-  const { cedula } = req.query;
 
-  let sql = 'SELECT * FROM invoices';
-  let params = [];
+function crearFactura(cedula, descripcion, monto, mes_pago, anio_pago, estado, res) {
+  db.query('SELECT numero_factura FROM invoices ORDER BY id DESC LIMIT 1', (err, lastRows) => {
+    if (err) return res.status(500).json({ error: 'Error al generar número de factura' });
 
-  if (cedula) {
-    sql += ' WHERE cedula = ?';
-    params.push(cedula);
-  }
-
-  db.query(sql, params, (err, rows) => {
-    if (err) {
-      console.error('❌ Error al obtener facturas:', err);
-      return res.status(500).json({ error: 'Error al obtener facturas' });
+    let numeroFactura;
+    if (lastRows.length > 0) {
+      const ultimo = lastRows[0].numero_factura;
+      const num = parseInt(ultimo.split('-')[2]) + 1;
+      numeroFactura = `FAC-${new Date().getFullYear()}-${num.toString().padStart(6, '0')}`;
+    } else {
+      numeroFactura = `FAC-${new Date().getFullYear()}-000001`;
     }
 
-    res.status(200).json(rows);
+    const sqlInsert = `
+      INSERT INTO invoices (numero_factura, cedula, descripcion, monto, estado, fecha_emision, fecha_vencimiento, mes_pago, anio_pago)
+      VALUES (?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), ?, ?)
+    `;
+
+    db.query(sqlInsert, [numeroFactura, cedula, descripcion, monto, estado || 'pendiente', mes_pago, anio_pago], (err2) => {
+      if (err2) return res.status(500).json({ error: 'Error al guardar la factura' });
+
+      db.query('SELECT nombre, correo, direccion FROM users WHERE cedula = ?', [cedula], (err3, userRows) => {
+        if (err3) return res.status(500).json({ error: 'Factura creada, pero no se pudo consultar el cliente' });
+
+        const cliente = userRows[0] || {};
+
+        const datosFactura = {
+          numero_factura: numeroFactura,
+          cedula,
+          descripcion,
+          monto: parseFloat(monto),
+          nombre: cliente.nombre || '---',
+          correo: cliente.correo || '---',
+          direccion: cliente.direccion || '---',
+          fecha_emision: new Date().toISOString().split('T')[0],
+          estado: estado || 'pendiente',
+          mes_pago,
+          anio_pago
+        };
+
+        generarFacturaPDF(datosFactura, async (err4, rutaPDF) => {
+          if (err4) return res.status(500).json({ error: 'Factura creada, pero error al generar PDF' });
+
+          try {
+            await sendInvoiceEmail(datosFactura);
+          } catch (err5) {
+            console.warn('Factura creada, pero no se pudo enviar el correo:', err5);
+          }
+
+          return res.status(201).json({ message: 'Factura creada correctamente', numero_factura: numeroFactura, pdf: rutaPDF });
+        });
+      });
+    });
   });
-});
+}
 
 module.exports = router;
