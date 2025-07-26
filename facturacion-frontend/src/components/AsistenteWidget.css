@@ -1,65 +1,71 @@
-.asistente-widget {
+.asistente-container {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  z-index: 999;
-  font-family: Arial, sans-serif;
+  z-index: 9999;
 }
 
-.abrir-asistente {
-  padding: 12px 18px;
-  background-color: #0d6efd;
+.abrir-btn {
+  background-color: #0077cc;
   color: white;
   border: none;
-  border-radius: 25px;
+  padding: 12px;
+  border-radius: 50%;
+  font-size: 22px;
   cursor: pointer;
 }
 
-.asistente-box {
-  width: 300px;
-  background: white;
-  border: 1px solid #ccc;
+.asistente-widget {
+  width: 320px;
+  background: #fff;
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 0 12px rgba(0,0,0,0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .asistente-header {
-  background-color: #0d6efd;
+  background-color: #0077cc;
   color: white;
   padding: 10px;
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  font-weight: bold;
 }
 
 .asistente-body {
-  padding: 15px;
+  padding: 10px;
+  height: 300px;
+  overflow-y: auto;
+}
+
+.asistente-chat .mensaje {
+  margin: 6px 0;
+  padding: 8px;
+  border-radius: 8px;
+  max-width: 90%;
+}
+
+.mensaje.user {
+  background: #e0f7fa;
+  align-self: flex-end;
+}
+
+.mensaje.bot {
+  background: #f1f8e9;
+  align-self: flex-start;
+}
+
+.asistente-input {
+  padding: 10px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
-.asistente-body input {
-  padding: 8px;
-  font-size: 14px;
-  width: 100%;
-}
-
-.asistente-body button {
-  padding: 8px;
-  background-color: #0d6efd;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.chat p {
-  margin: 0;
-}
-
-.btn-volver {
-  background-color: #6c757d;
+.asistente-input input {
+  flex: 1;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
 }

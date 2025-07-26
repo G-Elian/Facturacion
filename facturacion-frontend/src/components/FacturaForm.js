@@ -150,7 +150,7 @@ function FacturaForm() {
                     onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
                   >
                     <option value="pendiente">Pendiente</option>
-                    <option value="pagado">Pagado</option>
+                    <option value="pagada">Pagada</option>
                   </select>
                 </div>
 

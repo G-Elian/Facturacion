@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/ApiService';
 import FacturaForm from './FacturaForm';
 
+
 function AdminDashboard() {
   const [stats, setStats] = useState({
     totalUsuarios: 0,

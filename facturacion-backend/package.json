@@ -25,6 +25,7 @@
     "jsonwebtoken": "^9.0.0",
     "moment": "^2.29.4",
     "mysql": "^2.18.1",
+    "mysql2": "^3.14.2",
     "nodemailer": "^6.10.1",
     "pdfkit": "^0.17.1",
     "react-router-dom": "^7.6.3",
