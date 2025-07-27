@@ -10,12 +10,14 @@ app.use(express.json());
 const usuariosRoutes = require('./routes/users');
 const facturasRoutes = require('./routes/facturas');
 const pagosRoutes = require('./routes/payments');
-const notificacionesRoutes = require('./routes/notifications');
 const adminsRoutes = require('./routes/admins');
 const perfilRoutes = require('./routes/perfil');
 const loginRoutes = require('./routes/login');
 const chatbotRoutes = require('./routes/Chatbot');
 const asistenteRoutes = require('./routes/asistente');
+const notificacionesRoutes = require('./routes/notifications');
+const anomaliasRouter = require('./routes/anomalias');
+
 
 // Configurar rutas
 app.use('/api/chatbot', chatbotRoutes);
@@ -23,10 +25,11 @@ app.use('/api/asistente', asistenteRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/facturas', facturasRoutes);
 app.use('/api/pagos', pagosRoutes);
-app.use('/api/notificaciones', notificacionesRoutes);
 app.use('/api/admins', adminsRoutes);
 app.use('/api/perfil', perfilRoutes);
 app.use('/api/login', loginRoutes);
+app.use('/api/notificaciones', notificacionesRoutes);
+app.use('/api/anomalias', anomaliasRouter);
 
 // Ruta de prueba
 app.get('/', (req, res) => {

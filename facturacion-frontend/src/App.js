@@ -12,6 +12,9 @@ import EditarUsuarioForm from './components/EditarUsuarioForm';
 import LoginPage from './components/LoginPage';
 import { ApiService, TokenService } from './services/ApiService';
 import AsistenteWidget from './components/AsistenteWidget';
+import AdminNotificaciones from './components/AdminNotificaciones';
+import AdminAnomalias from './components/AdminAnomalias';
+
 
 function App() {
   const [user, setUser] = useState(null);
@@ -63,6 +66,8 @@ function App() {
         <Route path="/admin/facturas" element={user ? <ListaFacturas /> : <Navigate to="/login" />} />
         <Route path="/admin/crear-usuario" element={user ? <CrearUsuarioForm /> : <Navigate to="/login" />} />
         <Route path="/admin/crear-factura" element={user ? <FacturaForm /> : <Navigate to="/login" />} />
+        <Route path="/admin/notificaciones" element={<AdminNotificaciones />} />
+        <Route path="/admin/anomalias" element={<AdminAnomalias />} />
         <Route path="/admin/usuarios/editar/:cedula" element={user ? <EditarUsuarioForm /> : <Navigate to="/login" />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
