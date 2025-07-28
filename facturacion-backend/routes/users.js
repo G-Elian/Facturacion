@@ -2,6 +2,21 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
+// Función auxiliar para registrar anomalías
+const registrarAnomalia = (cedula, tipo, descripcion, callback) => {
+  const sql = `
+    INSERT INTO anomalies (cedula, mes_pago, anio_pago, monto, tipo, descripcion) 
+    VALUES (?, MONTH(NOW()), YEAR(NOW()), 0, ?, ?)
+  `;
+  
+  db.query(sql, [cedula, tipo, descripcion], (err, result) => {
+    if (err) {
+      console.error('Error al registrar anomalía:', err);
+    }
+    if (callback) callback(err, result);
+  });
+};
+
 // Obtener todos los usuarios
 router.get('/', (req, res) => {
   const sql = 'SELECT * FROM users ORDER BY nombre ASC';
@@ -79,48 +94,94 @@ router.put('/:cedula', (req, res) => {
     return res.status(400).json({ error: 'Faltan campos obligatorios' });
   }
 
-  const sql = `
-    UPDATE users 
-    SET nombre = ?, correo = ?, telefono = ?, direccion = ?, saldo = ?, estado = ? 
-    WHERE cedula = ?
-  `;
-
-  const valores = [nombre, correo, telefono, direccion, saldo, estado, cedula];
-
-  db.query(sql, valores, (err, result) => {
+  // Primero obtener los datos actuales del usuario para comparar
+  const sqlSelect = 'SELECT * FROM users WHERE cedula = ?';
+  db.query(sqlSelect, [cedula], (err, currentData) => {
     if (err) {
-      console.error('Error al actualizar usuario:', err);
-      return res.status(500).json({ error: 'Error al actualizar usuario' });
+      console.error('Error al obtener datos actuales:', err);
+      return res.status(500).json({ error: 'Error al obtener datos actuales' });
     }
 
-    if (result.affectedRows === 0) {
+    if (currentData.length === 0) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    res.json({ message: 'Usuario actualizado correctamente' });
+    const usuario = currentData[0];
+    
+    const sql = `
+      UPDATE users 
+      SET nombre = ?, correo = ?, telefono = ?, direccion = ?, saldo = ?, estado = ? 
+      WHERE cedula = ?
+    `;
+
+    const valores = [nombre, correo, telefono, direccion, saldo, estado, cedula];
+
+    db.query(sql, valores, (err, result) => {
+      if (err) {
+        console.error('Error al actualizar usuario:', err);
+        return res.status(500).json({ error: 'Error al actualizar usuario' });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      // Registrar la anomalía de actualización
+      let cambios = [];
+      if (usuario.nombre !== nombre) cambios.push(`Nombre: ${usuario.nombre} → ${nombre}`);
+      if (usuario.correo !== correo) cambios.push(`Correo: ${usuario.correo} → ${correo}`);
+      if (usuario.telefono !== telefono) cambios.push(`Teléfono: ${usuario.telefono} → ${telefono}`);
+      if (usuario.direccion !== direccion) cambios.push(`Dirección: ${usuario.direccion} → ${direccion}`);
+      if (parseFloat(usuario.saldo) !== parseFloat(saldo)) cambios.push(`Saldo: ${usuario.saldo} → ${saldo}`);
+      if (usuario.estado !== estado) cambios.push(`Estado: ${usuario.estado} → ${estado}`);
+
+      if (cambios.length > 0) {
+        const descripcion = `Actualización de usuario. Cambios: ${cambios.join(', ')}`;
+        registrarAnomalia(cedula, 'actualizacion_usuario', descripcion);
+      }
+
+      res.json({ message: 'Usuario actualizado correctamente' });
+    });
   });
 });
-
 
 // Eliminar usuario sin validar facturas pendientes (solo si lo deseas)
 router.delete('/:cedula', (req, res) => {
   const { cedula } = req.params;
 
-  const sql = 'DELETE FROM users WHERE cedula = ?';
-  db.query(sql, [cedula], (err, result) => {
+  // Primero obtener los datos del usuario antes de eliminarlo
+  const sqlSelect = 'SELECT * FROM users WHERE cedula = ?';
+  db.query(sqlSelect, [cedula], (err, userData) => {
     if (err) {
-      console.error('Error al eliminar usuario:', err);
+      console.error('Error al obtener datos del usuario:', err);
       return res.status(500).json({ error: 'Error en la base de datos' });
     }
 
-    if (result.affectedRows === 0) {
+    if (userData.length === 0) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    res.json({ message: 'Usuario eliminado correctamente' });
+    const usuario = userData[0];
+
+    const sql = 'DELETE FROM users WHERE cedula = ?';
+    db.query(sql, [cedula], (err, result) => {
+      if (err) {
+        console.error('Error al eliminar usuario:', err);
+        return res.status(500).json({ error: 'Error en la base de datos' });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      // Registrar la anomalía de eliminación
+      const descripcion = `Eliminación de usuario: ${usuario.nombre} (Cédula: ${cedula}, Saldo: ${usuario.saldo}, Estado: ${usuario.estado || 'N/A'})`;
+      registrarAnomalia(cedula, 'eliminacion_usuario', descripcion);
+
+      res.json({ message: 'Usuario eliminado correctamente' });
+    });
   });
 });
-
 
 // Obtener facturas de un usuario específico
 router.get('/:cedula/facturas', (req, res) => {
@@ -197,27 +258,47 @@ router.patch('/:cedula/saldo', (req, res) => {
     return res.status(400).json({ error: 'El monto debe ser un número válido' });
   }
 
-  const sql = 'UPDATE users SET saldo = saldo + ? WHERE cedula = ?';
-  db.query(sql, [monto, cedula], (err, result) => {
+  // Obtener el saldo actual antes de actualizar
+  const sqlSelect = 'SELECT saldo FROM users WHERE cedula = ?';
+  db.query(sqlSelect, [cedula], (err, currentData) => {
     if (err) {
-      console.error('Error al actualizar saldo:', err);
+      console.error('Error al obtener saldo actual:', err);
       return res.status(500).json({ error: 'Error en la base de datos' });
     }
 
-    if (result.affectedRows === 0) {
+    if (currentData.length === 0) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    // Registrar el movimiento en una tabla de historial (opcional)
-    const sqlHistorial = 'INSERT INTO movimientos_saldo (cedula, monto, concepto, fecha) VALUES (?, ?, ?, NOW())';
-    db.query(sqlHistorial, [cedula, monto, concepto || 'Ajuste de saldo'], (err) => {
-      if (err) {
-        console.error('Error al registrar movimiento:', err);
-        // No devolver error, solo loguearlo
-      }
-    });
+    const saldoAnterior = currentData[0].saldo;
 
-    res.json({ message: 'Saldo actualizado correctamente' });
+    const sql = 'UPDATE users SET saldo = saldo + ? WHERE cedula = ?';
+    db.query(sql, [monto, cedula], (err, result) => {
+      if (err) {
+        console.error('Error al actualizar saldo:', err);
+        return res.status(500).json({ error: 'Error en la base de datos' });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      // Registrar el movimiento en una tabla de historial (opcional)
+      const sqlHistorial = 'INSERT INTO movimientos_saldo (cedula, monto, concepto, fecha) VALUES (?, ?, ?, NOW())';
+      db.query(sqlHistorial, [cedula, monto, concepto || 'Ajuste de saldo'], (err) => {
+        if (err) {
+          console.error('Error al registrar movimiento:', err);
+          // No devolver error, solo loguearlo
+        }
+      });
+
+      // Registrar anomalía de cambio de saldo
+      const nuevoSaldo = parseFloat(saldoAnterior) + parseFloat(monto);
+      const descripcion = `Ajuste de saldo. Saldo anterior: ${saldoAnterior}, Monto ajuste: ${monto}, Nuevo saldo: ${nuevoSaldo}. Concepto: ${concepto || 'Ajuste de saldo'}`;
+      registrarAnomalia(cedula, 'ajuste_saldo', descripcion);
+
+      res.json({ message: 'Saldo actualizado correctamente' });
+    });
   });
 });
 
